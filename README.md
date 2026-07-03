@@ -1,6 +1,12 @@
 # 멍트립 🐾
 
-반려동물과 함께 떠나는 여행지 찾기 — 한국관광공사 TourAPI 4.0 **반려동물 동반여행 서비스(KorPetTourService2)** 기반.
+반려동물과 함께 떠나는 여행지 찾기 — 전국 12,000+ 반려동물 동반 가능 장소를 검색하고, 동반 조건·주변 편의시설·T맵 길찾기까지 한 번에.
+
+**🌐 라이브: https://mungtrip.projectyoon.com**
+
+| 홈 — 목록·지도·필터 | 상세 — 동반안내·편의시설·길찾기 |
+|---|---|
+| ![홈 화면](docs/screenshot-home.png) | ![상세 페이지](docs/screenshot-detail.png) |
 
 ## 실행
 
