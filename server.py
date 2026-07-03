@@ -75,10 +75,19 @@ async def places(
     region: str = Query("", description="법정동 시도코드 (11=서울...)"),
     type: str = Query("", description="contentTypeId (12=관광지...)"),
     keyword: str = Query(""),
+    sort: str = Query("reco", description="reco=추천순 | dist=거리순(lat/lng 필수) | name=이름순"),
+    lat: float = Query(0.0),
+    lng: float = Query(0.0),
     page: int = Query(1, ge=1),
     size: int = Query(12, ge=1, le=50),
 ):
-    """로컬 DB(관광공사 전량 + 문화정보원 병합) 조회. 이미지 있는 곳 우선 정렬."""
+    """로컬 DB(관광공사 전량 + 문화정보원 병합) 조회.
+
+    추천순 = 이미지 보유 우선 + rowid(수집 시 관광공사 arrange=Q 순서 = 수정일·대표이미지 우선) 유지.
+    거리순 = 위경도 근사 제곱거리로 정렬(정렬용으로 충분), 표시 거리는 하버사인으로 계산.
+    """
+    import math
+
     where, args = [], []
     if region:
         where.append("region = ?")
@@ -90,14 +99,33 @@ async def places(
         where.append("(title LIKE ? OR addr LIKE ?)")
         kw = f"%{keyword.strip()}%"
         args += [kw, kw]
-    cond = ("WHERE " + " AND ".join(where)) if where else ""
 
+    order = "ORDER BY (img = '') ASC, rowid ASC"  # reco 기본
+    order_args: list = []
+    if sort == "name":
+        order = "ORDER BY title ASC"
+    elif sort == "dist" and lat and lng:
+        where.append("lat > 0")
+        coslat = math.cos(math.radians(lat))
+        order = "ORDER BY (lat - ?) * (lat - ?) + (lng - ?) * (lng - ?) * ? ASC"
+        order_args = [lat, lat, lng, lng, coslat * coslat]
+
+    cond = ("WHERE " + " AND ".join(where)) if where else ""
     total = _db.execute(f"SELECT COUNT(*) FROM places {cond}", args).fetchone()[0]
     rows = _db.execute(
         f"SELECT id, src, title, addr, tel, img, lat, lng, type FROM places {cond} "
-        f"ORDER BY (img = '') ASC, title ASC LIMIT ? OFFSET ?",
-        args + [size, (page - 1) * size],
+        f"{order} LIMIT ? OFFSET ?",
+        args + order_args + [size, (page - 1) * size],
     ).fetchall()
+
+    def hav(r):
+        if not (sort == "dist" and lat and lng and r["lat"]):
+            return None
+        p1, p2 = math.radians(lat), math.radians(r["lat"])
+        dp, dl = math.radians(r["lat"] - lat), math.radians(r["lng"] - lng)
+        a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+        return round(2 * 6371000 * math.asin(math.sqrt(a)))
+
     return {
         "total": total,
         "page": page,
@@ -105,7 +133,7 @@ async def places(
             {
                 "id": r["id"], "src": r["src"], "title": r["title"], "addr": r["addr"],
                 "img": r["img"], "mapx": r["lng"], "mapy": r["lat"],
-                "type": r["type"], "tel": r["tel"],
+                "type": r["type"], "tel": r["tel"], "dist": hav(r),
             }
             for r in rows
         ],

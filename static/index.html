@@ -168,9 +168,16 @@
 
   <div class="meta">
     <span id="meta"></span>
-    <div class="view-toggle">
-      <button id="v-list" class="on">목록</button>
-      <button id="v-map">지도</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="view-toggle" id="sorts">
+        <button data-s="reco" class="on">추천순</button>
+        <button data-s="dist">거리순</button>
+        <button data-s="name">이름순</button>
+      </div>
+      <div class="view-toggle">
+        <button id="v-list" class="on">목록</button>
+        <button id="v-map">지도</button>
+      </div>
     </div>
   </div>
   <div id="map"></div>
@@ -187,7 +194,7 @@ const REGIONS = [["","전국"],["11","서울"],["26","부산"],["27","대구"],[
 const TYPES = [["","전체"],["12","관광지"],["14","문화시설"],["28","레포츠"],["32","숙박"],["39","음식점"],["38","쇼핑"]];
 const TYPE_NAME = Object.fromEntries(TYPES);
 
-const state = { region: "", type: "", keyword: "", page: 1, total: 0, loading: false };
+const state = { region: "", type: "", keyword: "", sort: "reco", loc: null, page: 1, total: 0, loading: false };
 const $ = id => document.getElementById(id);
 
 function renderFilters() {
@@ -203,15 +210,18 @@ async function load(reset = true) {
   if (reset) { state.page = 1; $("grid").innerHTML = '<div class="skeleton"></div>'.repeat(6); $("empty").style.display = "none"; }
   $("more").disabled = true;
   try {
-    const q = new URLSearchParams({ region: state.region, type: state.type, keyword: state.keyword, page: state.page, size: 12 });
+    const q = new URLSearchParams({ region: state.region, type: state.type, keyword: state.keyword, sort: state.sort, page: state.page, size: 12 });
+    if (state.sort === "dist" && state.loc) { q.set("lat", state.loc[0]); q.set("lng", state.loc[1]); }
     const res = await fetch("/api/places?" + q);
     const data = await res.json();
     state.total = data.total;
+    const fmtD = d => d == null ? "" : (d >= 1000 ? (d / 1000).toFixed(1) + "km" : d + "m");
     const cards = data.items.map(p => `
       <article class="card" data-id="${p.id}">
         <div class="thumb">${p.img ? `<img src="${p.img}" alt="" loading="lazy">` : `<div class="noimg">🐾</div>`}</div>
         <div class="body">
           <span class="badge">${TYPE_NAME[p.type] || "여행지"}</span>
+          ${p.dist != null ? `<span class="badge" style="margin-left:4px">📍 ${fmtD(p.dist)}</span>` : ""}
           <h3>${p.title}</h3>
           <div class="addr">${p.addr || "주소 정보 없음"}</div>
         </div>
@@ -276,6 +286,27 @@ async function refreshMap() {
 
 $("v-list").addEventListener("click", () => setView("list"));
 $("v-map").addEventListener("click", () => setView("map"));
+
+/* ---- 정렬 ---- */
+function setSort(s) {
+  state.sort = s;
+  document.querySelectorAll("#sorts button").forEach(b => b.classList.toggle("on", b.dataset.s === s));
+  onFilterChange();
+}
+$("sorts").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const s = b.dataset.s;
+  if (s === "dist") {
+    if (state.loc) return setSort("dist");
+    if (!navigator.geolocation) { alert("이 브라우저에서는 위치를 사용할 수 없어요."); return; }
+    b.textContent = "위치 확인 중…";
+    navigator.geolocation.getCurrentPosition(
+      pos => { state.loc = [pos.coords.latitude, pos.coords.longitude]; b.textContent = "거리순"; setSort("dist"); },
+      () => { b.textContent = "거리순"; alert("위치 권한이 필요해요. 주소창에서 위치 접근을 허용해 주세요."); },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+  } else setSort(s);
+});
 
 function onFilterChange() {
   renderFilters(); load();
