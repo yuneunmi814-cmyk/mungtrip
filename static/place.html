@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멍트립 — 상세 정보</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* Wanted Design System 토큰 (style-guides/wanted-style-guide.md) */
+  :root {
+    --wds-primary: #0066FF;
+    --wds-primary-strong: #005EEB;
+    --wds-label-normal: #171719;
+    --wds-label-neutral: rgba(46, 47, 51, 0.88);
+    --wds-label-alternative: rgba(55, 56, 60, 0.61);
+    --wds-label-assistive: rgba(55, 56, 60, 0.28);
+    --wds-bg-normal: #FFFFFF;
+    --wds-bg-alternative: #F7F7F8;
+    --wds-fill-normal: rgba(112, 115, 124, 0.08);
+    --wds-fill-strong: rgba(112, 115, 124, 0.16);
+    --wds-line-normal: #E1E2E4;
+    --wds-line-neutral: #EAEBEC;
+    --wds-line-alternative: #F4F4F5;
+    --wds-blue-95: #EAF2FE;
+    --wds-blue-45: #005EEB;
+    --wds-shadow-small: 0 2px 4px -2px rgba(23,23,23,0.06), 0 4px 6px -1px rgba(23,23,23,0.06);
+    --wds-shadow-medium: 0 4px 6px -2px rgba(23,23,23,0.07), 0 10px 15px -3px rgba(23,23,23,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+    background: var(--wds-bg-normal); color: var(--wds-label-normal);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 840px; margin: 0 auto; padding: 0 20px; }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--wds-line-alternative);
+  }
+  .header-in { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-size: 22px; line-height: 30px; letter-spacing: -0.0194em; font-weight: 700; color: var(--wds-label-normal); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+  .logo .paw { color: var(--wds-primary); }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px;
+    border-radius: 8px; background: var(--wds-fill-normal); border: none; font-family: inherit;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.0145em; color: var(--wds-label-neutral);
+    cursor: pointer; text-decoration: none; transition: background .15s;
+  }
+  .back:hover { background: var(--wds-fill-strong); }
+
+  /* 갤러리 */
+  .gallery { padding-top: 24px; }
+  .hero-img {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
+    border-radius: 16px; background: var(--wds-bg-alternative); border: 1px solid var(--wds-line-alternative);
+  }
+  .hero-noimg { width: 100%; aspect-ratio: 16/9; border-radius: 16px; background: var(--wds-bg-alternative);
+    display: flex; align-items: center; justify-content: center; font-size: 64px; opacity: .4; }
+  .thumbs { display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .thumbs img {
+    width: 96px; height: 68px; object-fit: cover; border-radius: 8px; cursor: pointer;
+    border: 2px solid transparent; flex: none; transition: border-color .15s; background: var(--wds-bg-alternative);
+  }
+  .thumbs img.on { border-color: var(--wds-primary); }
+
+  /* 타이틀 블록 */
+  .title-block { padding: 24px 0 8px; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 6px;
+    background: var(--wds-blue-95); color: var(--wds-blue-45);
+    font-size: 13px; line-height: 18px; letter-spacing: 0.0194em; font-weight: 600;
+  }
+  h1 { margin-top: 10px; font-size: 32px; line-height: 44px; letter-spacing: -0.0253em; font-weight: 700; }
+  .sub { margin-top: 6px; font-size: 15px; line-height: 22px; letter-spacing: 0.0096em; color: var(--wds-label-alternative); }
+  .sub a { color: var(--wds-primary); text-decoration: none; }
+  .sub a:hover { text-decoration: underline; }
+
+  /* 섹션 공통 */
+  section { padding: 28px 0; border-top: 1px solid var(--wds-line-neutral); }
+  section:first-of-type { border-top: none; }
+  h2 { font-size: 20px; line-height: 28px; letter-spacing: -0.012em; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .overview { font-size: 16px; line-height: 26px; letter-spacing: 0.0057em; color: var(--wds-label-neutral); white-space: pre-line; }
+  .overview.clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  .btn-toggle {
+    margin-top: 12px; height: 36px; padding: 0 16px; border-radius: 8px; font-family: inherit;
+    border: 1px solid var(--wds-line-normal); background: var(--wds-bg-normal);
+    font-size: 13px; font-weight: 500; letter-spacing: 0.0194em; color: var(--wds-label-neutral); cursor: pointer;
+  }
+  .btn-toggle:hover { background: var(--wds-fill-normal); }
+
+  /* 반려동물 박스 — 핵심 정보라 최상단 강조 */
+  .pet-box { border: 1px solid var(--wds-line-neutral); border-radius: 16px; padding: 20px; background: var(--wds-bg-alternative); }
+  .info-row { display: flex; gap: 16px; padding: 8px 0; font-size: 15px; line-height: 22px; letter-spacing: 0.0096em; }
+  .info-row + .info-row { border-top: 1px solid var(--wds-line-alternative); }
+  .info-row .k { flex: none; width: 120px; color: var(--wds-label-alternative); }
+  .info-row .v { color: var(--wds-label-normal); white-space: pre-line; }
+  .pet-empty { font-size: 15px; color: var(--wds-label-alternative); }
+
+  /* 위치 */
+  #map { height: 320px; border-radius: 16px; border: 1px solid var(--wds-line-alternative); z-index: 0; }
+  .actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .actions a, .actions button {
+    display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px;
+    border-radius: 10px; font-size: 15px; font-weight: 500; letter-spacing: 0.0096em; text-decoration: none;
+    border: none; font-family: inherit; cursor: pointer;
+  }
+  .actions .primary { background: var(--wds-primary); color: #fff; }
+  .actions .primary:hover { background: var(--wds-primary-strong); }
+  .actions .primary:disabled { background: var(--wds-interaction-disable, #F4F4F5); color: var(--wds-label-assistive); cursor: default; }
+  .actions .sub { background: var(--wds-fill-normal); color: var(--wds-label-neutral); }
+  .actions .sub:hover { background: var(--wds-fill-strong); }
+  .route-summary {
+    display: none; margin-top: 12px; padding: 12px 16px; border-radius: 10px;
+    background: var(--wds-blue-95); color: var(--wds-blue-45);
+    font-size: 15px; line-height: 22px; letter-spacing: 0.0096em; font-weight: 600;
+  }
+  .route-summary.err { background: var(--wds-fill-normal); color: var(--wds-label-alternative); font-weight: 500; }
+
+  .skeleton { animation: pulse 1.2s ease-in-out infinite; background: var(--wds-fill-normal); border-radius: 16px; }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  .err { padding: 100px 0; text-align: center; color: var(--wds-label-alternative); font-size: 16px; }
+  .err .dog { font-size: 56px; margin-bottom: 16px; }
+
+  footer { border-top: 1px solid var(--wds-line-alternative); margin-top: 40px; padding: 24px 0 48px; font-size: 12px; line-height: 16px; letter-spacing: 0.0252em; color: var(--wds-label-assistive); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-in">
+    <a class="logo" href="/"><span class="paw">🐾</span>멍트립</a>
+    <a class="back" href="/">← 목록으로</a>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="gallery"><div class="skeleton" style="aspect-ratio:16/9"></div></div>
+</main>
+
+<footer><div class="wrap">출처: 한국관광공사 TourAPI 4.0 반려동물 동반여행 정보 · 멍트립</div></footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const TYPE_NAME = {"12":"관광지","14":"문화시설","15":"축제·행사","25":"여행코스","28":"레포츠","32":"숙박","38":"쇼핑","39":"음식점"};
+const id = location.pathname.split("/").pop();
+let placeMap = null, routeLayer = null;
+
+function fmtRoute(m, s) {
+  const km = m >= 1000 ? (m / 1000).toFixed(1) + "km" : m + "m";
+  const min = Math.round(s / 60);
+  const t = min >= 60 ? `${Math.floor(min / 60)}시간 ${min % 60}분` : `${min}분`;
+  return `🚗 약 ${km} · ${t}`;
+}
+
+function findRoute(btn, summary, destLat, destLng) {
+  if (!navigator.geolocation) {
+    summary.className = "route-summary err"; summary.style.display = "block";
+    summary.textContent = "이 브라우저에서는 위치를 사용할 수 없어요.";
+    return;
+  }
+  btn.disabled = true; btn.textContent = "현재 위치 확인 중…";
+  navigator.geolocation.getCurrentPosition(async pos => {
+    btn.textContent = "경로 검색 중…";
+    try {
+      const q = new URLSearchParams({ sx: pos.coords.longitude, sy: pos.coords.latitude, ex: destLng, ey: destLat });
+      const res = await fetch("/api/route?" + q);
+      if (!res.ok) throw new Error(res.status);
+      const r = await res.json();
+      if (routeLayer) routeLayer.remove();
+      routeLayer = L.layerGroup().addTo(placeMap);
+      L.polyline(r.path, { color: "#0066FF", weight: 5, opacity: 0.85 }).addTo(routeLayer);
+      L.circleMarker([pos.coords.latitude, pos.coords.longitude],
+        { radius: 7, color: "#fff", weight: 2, fillColor: "#0066FF", fillOpacity: 1 })
+        .addTo(routeLayer).bindPopup("현재 위치");
+      placeMap.fitBounds(r.path, { padding: [30, 30] });
+      summary.className = "route-summary"; summary.style.display = "block";
+      summary.textContent = fmtRoute(r.distance, r.time) + " (T맵 자동차 기준)";
+      btn.textContent = "🚗 경로 다시 찾기";
+    } catch (e) {
+      summary.className = "route-summary err"; summary.style.display = "block";
+      summary.textContent = "경로를 찾지 못했어요. 잠시 후 다시 시도해 주세요.";
+      btn.textContent = "🚗 T맵 길찾기";
+    } finally { btn.disabled = false; }
+  }, () => {
+    summary.className = "route-summary err"; summary.style.display = "block";
+    summary.textContent = "위치 권한이 필요해요. 브라우저 주소창에서 위치 접근을 허용해 주세요.";
+    btn.disabled = false; btn.textContent = "🚗 T맵 길찾기";
+  }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function infoRows(rows) {
+  const frag = document.createDocumentFragment();
+  rows.forEach(r => {
+    const row = el("div", "info-row");
+    row.append(el("div", "k", r.label), el("div", "v", r.value));
+    frag.append(row);
+  });
+  return frag;
+}
+
+async function init() {
+  const main = document.getElementById("main");
+  let p;
+  try {
+    const res = await fetch("/api/place/" + id);
+    if (!res.ok) throw new Error(res.status);
+    p = await res.json();
+    if (!p.title) throw new Error("not found");
+  } catch (e) {
+    main.innerHTML = '<div class="err"><div class="dog">🐕</div>장소 정보를 불러오지 못했어요.<br><br><a class="back" href="/">← 목록으로 돌아가기</a></div>';
+    return;
+  }
+  document.title = `${p.title} — 멍트립`;
+  main.innerHTML = "";
+
+  /* 갤러리 */
+  const imgs = [p.img, ...p.images.filter(u => u !== p.img)].filter(Boolean);
+  const gal = el("div", "gallery");
+  if (imgs.length) {
+    const hero = el("img", "hero-img"); hero.src = imgs[0]; hero.alt = p.title;
+    gal.append(hero);
+    if (imgs.length > 1) {
+      const strip = el("div", "thumbs");
+      imgs.slice(0, 8).forEach((u, i) => {
+        const t = el("img", i === 0 ? "on" : ""); t.src = u; t.loading = "lazy";
+        t.onclick = () => { hero.src = u; strip.querySelectorAll("img").forEach(x => x.classList.remove("on")); t.classList.add("on"); };
+        strip.append(t);
+      });
+      gal.append(strip);
+    }
+  } else {
+    gal.append(el("div", "hero-noimg", "🐾"));
+  }
+  main.append(gal);
+
+  /* 타이틀 */
+  const tb = el("div", "title-block");
+  tb.append(el("span", "badge", TYPE_NAME[p.type] || "여행지"));
+  tb.append(el("h1", "", p.title));
+  const sub = el("div", "sub");
+  sub.textContent = p.addr + (p.tel ? " · " + p.tel : "");
+  tb.append(sub);
+  main.append(tb);
+
+  /* 반려동물 동반 안내 — 최우선 노출 */
+  const petSec = el("section");
+  petSec.append(el("h2", "", "🐶 반려동물 동반 안내"));
+  const box = el("div", "pet-box");
+  if (p.pet.length) box.append(infoRows(p.pet));
+  else box.append(el("div", "pet-empty", "등록된 동반 상세 정보가 없어요. 방문 전 시설에 문의해 주세요."));
+  petSec.append(box);
+  main.append(petSec);
+
+  /* 소개 */
+  if (p.overview) {
+    const sec = el("section");
+    sec.append(el("h2", "", "소개"));
+    const ov = el("p", "overview clamp", p.overview);
+    sec.append(ov);
+    if (p.overview.length > 300) {
+      const btn = el("button", "btn-toggle", "더 보기");
+      btn.onclick = () => { const c = ov.classList.toggle("clamp"); btn.textContent = c ? "더 보기" : "접기"; };
+      sec.append(btn);
+    } else ov.classList.remove("clamp");
+    main.append(sec);
+  }
+
+  /* 이용 안내 */
+  if (p.intro.length) {
+    const sec = el("section");
+    sec.append(el("h2", "", "이용 안내"));
+    sec.append(infoRows(p.intro));
+    main.append(sec);
+  }
+
+  /* 주변 편의시설 */
+  const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1) + "km" : d + "m";
+  const hasAmenity = (p.toilets?.length || p.waters?.length || p.grounds?.length);
+  if (hasAmenity) {
+    const sec = el("section");
+    sec.append(el("h2", "", "주변 편의시설"));
+    const rows = [];
+    (p.grounds || []).forEach(g => rows.push({ icon: "🐕", dist: g.dist, node: (() => {
+      const a = el("a", "", g.name); a.href = "/place/" + g.id;
+      a.style.cssText = "color:var(--wds-primary);text-decoration:none;font-weight:500";
+      return a;
+    })() }));
+    (p.toilets || []).forEach(t => rows.push({ icon: "🚻", dist: t.dist, node: document.createTextNode(t.name + (t.open ? ` · ${t.open}` : "")) }));
+    (p.waters || []).forEach(w => rows.push({ icon: "🚰", dist: w.dist, node: document.createTextNode(w.name + " (음수대 보유 공원)") }));
+    rows.forEach(r => {
+      const row = el("div", "info-row");
+      const k = el("div", "k", `${r.icon} ${fmtDist(r.dist)}`);
+      const v = el("div", "v"); v.append(r.node);
+      row.append(k, v);
+      sec.append(row);
+    });
+    const note = el("div", "", "공공데이터(공중화장실·도시공원 표준데이터) 기준 직선거리예요. 놀이터는 클릭하면 상세로 이동해요.");
+    note.style.cssText = "margin-top:10px;font-size:12px;line-height:16px;color:var(--wds-label-assistive)";
+    sec.append(note);
+    main.append(sec);
+  }
+
+  /* 위치 */
+  const lat = parseFloat(p.mapy), lng = parseFloat(p.mapx);
+  const locSec = el("section");
+  locSec.append(el("h2", "", "위치"));
+  if (lat && lng) {
+    const mapDiv = el("div"); mapDiv.id = "map";
+    locSec.append(mapDiv);
+  }
+  const acts = el("div", "actions");
+  const summary = el("div", "route-summary");
+  if (lat && lng) {
+    const tmap = el("button", "primary", "🚗 T맵 길찾기");
+    tmap.onclick = () => findRoute(tmap, summary, lat, lng);
+    acts.append(tmap);
+    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      const app = el("a", "sub", "T맵 앱에서 열기");
+      app.href = `tmap://route?goalname=${encodeURIComponent(p.title)}&goalx=${lng}&goaly=${lat}`;
+      acts.append(app);
+    }
+    const kakao = el("a", "sub", "카카오맵");
+    kakao.href = `https://map.kakao.com/link/map/${encodeURIComponent(p.title)},${lat},${lng}`;
+    kakao.target = "_blank"; kakao.rel = "noopener";
+    acts.append(kakao);
+  }
+  const home = (String(p.homepage).match(/href="([^"]+)"/) || [])[1] || (String(p.homepage).startsWith("http") ? p.homepage : "");
+  if (home) {
+    const h = el("a", "sub", "홈페이지"); h.href = home; h.target = "_blank"; h.rel = "noopener";
+    acts.append(h);
+  }
+  if (acts.children.length) locSec.append(acts, summary);
+  main.append(locSec);
+
+  if (p.source) {
+    const src = el("div", "", `장소 정보 출처: ${p.source}`);
+    src.style.cssText = "padding:8px 0 24px;font-size:12px;line-height:16px;letter-spacing:0.0252em;color:var(--wds-label-assistive)";
+    main.append(src);
+  }
+
+  if (lat && lng) {
+    placeMap = L.map("map", { scrollWheelZoom: false }).setView([lat, lng], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap", maxZoom: 19 }).addTo(placeMap);
+    L.marker([lat, lng]).addTo(placeMap);
+    const amenityMarker = (list, icon, color) => (list || []).forEach(a => {
+      L.circleMarker([a.lat, a.lng], { radius: 8, color: "#fff", weight: 2, fillColor: color, fillOpacity: 0.9 })
+        .addTo(placeMap)
+        .bindTooltip(icon + " " + a.name, { direction: "top" });
+    });
+    amenityMarker(p.toilets, "🚻", "#70737C");
+    amenityMarker(p.waters, "🚰", "#0066FF");
+    amenityMarker(p.grounds, "🐕", "#00BF40");
+  }
+}
+init();
+</script>
+</body>
+</html>

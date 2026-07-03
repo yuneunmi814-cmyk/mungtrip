@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>멍트립 — 반려동물과 함께 떠나는 여행</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  /* Wanted Design System 토큰 (style-guides/wanted-style-guide.md) */
+  :root {
+    --wds-primary: #0066FF;
+    --wds-primary-strong: #005EEB;
+    --wds-primary-heavy: #0054D1;
+    --wds-label-normal: #171719;
+    --wds-label-neutral: rgba(46, 47, 51, 0.88);
+    --wds-label-alternative: rgba(55, 56, 60, 0.61);
+    --wds-label-assistive: rgba(55, 56, 60, 0.28);
+    --wds-bg-normal: #FFFFFF;
+    --wds-bg-alternative: #F7F7F8;
+    --wds-fill-normal: rgba(112, 115, 124, 0.08);
+    --wds-fill-strong: rgba(112, 115, 124, 0.16);
+    --wds-line-normal: #E1E2E4;
+    --wds-line-neutral: #EAEBEC;
+    --wds-line-alternative: #F4F4F5;
+    --wds-status-positive: #00BF40;
+    --wds-blue-95: #EAF2FE;
+    --wds-blue-45: #005EEB;
+    --wds-shadow-small: 0 2px 4px -2px rgba(23,23,23,0.06), 0 4px 6px -1px rgba(23,23,23,0.06);
+    --wds-shadow-medium: 0 4px 6px -2px rgba(23,23,23,0.07), 0 10px 15px -3px rgba(23,23,23,0.07);
+    --wds-shadow-large: 0 6px 10px -4px rgba(23,23,23,0.08), 0 16px 24px -6px rgba(23,23,23,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+    background: var(--wds-bg-normal);
+    color: var(--wds-label-normal);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--wds-line-alternative);
+  }
+  .header-in { display: flex; align-items: center; gap: 24px; height: 64px; }
+  .logo { font-size: 22px; line-height: 30px; letter-spacing: -0.0194em; font-weight: 700; color: var(--wds-label-normal); display: flex; align-items: center; gap: 8px; }
+  .logo .paw { color: var(--wds-primary); }
+  .search { flex: 1; max-width: 420px; position: relative; }
+  .search input {
+    width: 100%; height: 44px; padding: 0 16px 0 44px;
+    border: 1px solid var(--wds-line-normal); border-radius: 10px;
+    font-size: 15px; letter-spacing: 0.0096em; font-family: inherit;
+    background: var(--wds-bg-alternative); color: var(--wds-label-normal);
+    outline: none; transition: border-color .15s, background .15s;
+  }
+  .search input::placeholder { color: var(--wds-label-assistive); }
+  .search input:focus { border-color: var(--wds-primary); background: var(--wds-bg-normal); }
+  .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--wds-label-assistive); }
+
+  .hero { padding: 48px 0 8px; }
+  .hero h1 { font-size: 32px; line-height: 44px; letter-spacing: -0.0253em; font-weight: 700; }
+  .hero h1 em { font-style: normal; color: var(--wds-primary); }
+  .hero p { margin-top: 8px; font-size: 16px; line-height: 24px; letter-spacing: 0.0057em; color: var(--wds-label-alternative); }
+
+  .filters { padding: 24px 0 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; height: 36px; padding: 0 14px; border-radius: 999px;
+    border: 1px solid var(--wds-line-normal); background: var(--wds-bg-normal);
+    font-size: 14px; letter-spacing: 0.0145em; font-weight: 500; font-family: inherit;
+    color: var(--wds-label-neutral); cursor: pointer; transition: all .15s;
+  }
+  .chip:hover { background: var(--wds-fill-normal); }
+  .chip.on { background: var(--wds-label-normal); border-color: var(--wds-label-normal); color: #fff; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--wds-line-neutral); }
+  .tab {
+    height: 44px; padding: 0 14px; border: none; background: none; font-family: inherit;
+    font-size: 15px; letter-spacing: 0.0096em; font-weight: 500;
+    color: var(--wds-label-alternative); cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s;
+  }
+  .tab:hover { color: var(--wds-label-neutral); }
+  .tab.on { color: var(--wds-primary); border-bottom-color: var(--wds-primary); font-weight: 600; }
+
+  .meta { padding: 16px 0 8px; font-size: 14px; line-height: 20px; letter-spacing: 0.0145em; color: var(--wds-label-alternative);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .meta b { color: var(--wds-label-normal); font-weight: 600; }
+
+  .view-toggle { display: flex; background: var(--wds-fill-normal); border-radius: 8px; padding: 2px; }
+  .view-toggle button {
+    height: 32px; padding: 0 14px; border: none; border-radius: 6px; background: none; font-family: inherit;
+    font-size: 13px; letter-spacing: 0.0194em; font-weight: 500; color: var(--wds-label-alternative); cursor: pointer;
+  }
+  .view-toggle button.on { background: var(--wds-bg-normal); color: var(--wds-label-normal); font-weight: 600; box-shadow: var(--wds-shadow-small); }
+
+  #map { display: none; height: 580px; border-radius: 16px; border: 1px solid var(--wds-line-alternative); margin: 8px 0 40px; z-index: 0; }
+  body.map-mode #map { display: block; }
+  body.map-mode .grid, body.map-mode .more-wrap, body.map-mode #empty { display: none; }
+  .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: var(--wds-shadow-medium); font-family: inherit; }
+  .leaflet-popup-content { margin: 12px 14px; font-size: 14px; line-height: 20px; }
+  .pop-title { font-weight: 600; color: var(--wds-label-normal); }
+  .pop-addr { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--wds-label-alternative); }
+  .pop-btn { margin-top: 8px; display: inline-block; padding: 5px 10px; border: none; border-radius: 6px;
+    background: var(--wds-primary); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .pop-btn:hover { background: var(--wds-primary-strong); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px 20px; padding: 8px 0 40px; }
+  .card { cursor: pointer; border-radius: 16px; overflow: hidden; background: var(--wds-bg-normal); border: 1px solid var(--wds-line-alternative); transition: box-shadow .2s, transform .2s; }
+  .card:hover { box-shadow: var(--wds-shadow-medium); transform: translateY(-2px); }
+  .card .thumb { aspect-ratio: 4/3; background: var(--wds-bg-alternative); position: relative; overflow: hidden; }
+  .card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .thumb .noimg { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 40px; opacity: .35; }
+  .card .body { padding: 14px 16px 16px; }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 6px;
+    background: var(--wds-blue-95); color: var(--wds-blue-45);
+    font-size: 12px; line-height: 16px; letter-spacing: 0.0252em; font-weight: 600;
+  }
+  .card h3 { margin-top: 8px; font-size: 17px; line-height: 24px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .addr { margin-top: 4px; font-size: 13px; line-height: 18px; letter-spacing: 0.0194em; color: var(--wds-label-alternative);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .more-wrap { display: flex; justify-content: center; padding: 0 0 80px; }
+  .btn-more {
+    height: 48px; padding: 0 32px; border-radius: 10px; font-family: inherit;
+    border: 1px solid var(--wds-line-normal); background: var(--wds-bg-normal);
+    font-size: 15px; font-weight: 500; letter-spacing: 0.0096em; color: var(--wds-label-neutral);
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-more:hover { background: var(--wds-fill-normal); }
+  .btn-more:disabled { color: var(--wds-label-assistive); cursor: default; }
+
+  .empty { padding: 80px 0 120px; text-align: center; color: var(--wds-label-alternative); font-size: 16px; line-height: 24px; }
+  .empty .dog { font-size: 56px; margin-bottom: 16px; }
+
+  .skeleton { animation: pulse 1.2s ease-in-out infinite; background: var(--wds-fill-normal); border-radius: 16px; height: 300px; }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  footer { border-top: 1px solid var(--wds-line-alternative); padding: 24px 0 48px; font-size: 12px; line-height: 16px; letter-spacing: 0.0252em; color: var(--wds-label-assistive); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-in">
+    <div class="logo"><span class="paw">🐾</span>멍트립</div>
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="kw" type="search" placeholder="장소 이름으로 검색 (예: 애견카페, 해수욕장)">
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>반려동물과 <em>함께</em> 떠나요</h1>
+    <p>한국관광공사가 검증한 전국 반려동물 동반 가능 여행지</p>
+  </section>
+
+  <section class="filters">
+    <div class="chips" id="regions"></div>
+    <div class="tabs" id="types"></div>
+  </section>
+
+  <div class="meta">
+    <span id="meta"></span>
+    <div class="view-toggle">
+      <button id="v-list" class="on">목록</button>
+      <button id="v-map">지도</button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <section class="grid" id="grid"></section>
+  <div class="empty" id="empty" style="display:none"><div class="dog">🐕</div>조건에 맞는 장소가 없어요.<br>다른 지역이나 검색어로 찾아보세요.</div>
+  <div class="more-wrap"><button class="btn-more" id="more" style="display:none">더보기</button></div>
+</main>
+
+<footer><div class="wrap">출처: 한국관광공사 TourAPI 4.0 반려동물 동반여행 정보 · 멍트립</div></footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const REGIONS = [["","전국"],["11","서울"],["26","부산"],["27","대구"],["28","인천"],["29","광주"],["30","대전"],["31","울산"],["36","세종"],["41","경기"],["51","강원"],["43","충북"],["44","충남"],["52","전북"],["46","전남"],["47","경북"],["48","경남"],["50","제주"]];
+const TYPES = [["","전체"],["12","관광지"],["14","문화시설"],["28","레포츠"],["32","숙박"],["39","음식점"],["38","쇼핑"]];
+const TYPE_NAME = Object.fromEntries(TYPES);
+
+const state = { region: "", type: "", keyword: "", page: 1, total: 0, loading: false };
+const $ = id => document.getElementById(id);
+
+function renderFilters() {
+  $("regions").innerHTML = REGIONS.map(([v, n]) =>
+    `<button class="chip${state.region === v ? " on" : ""}" data-v="${v}">${n}</button>`).join("");
+  $("types").innerHTML = TYPES.map(([v, n]) =>
+    `<button class="tab${state.type === v ? " on" : ""}" data-v="${v}">${n}</button>`).join("");
+}
+
+async function load(reset = true) {
+  if (state.loading) return;
+  state.loading = true;
+  if (reset) { state.page = 1; $("grid").innerHTML = '<div class="skeleton"></div>'.repeat(6); $("empty").style.display = "none"; }
+  $("more").disabled = true;
+  try {
+    const q = new URLSearchParams({ region: state.region, type: state.type, keyword: state.keyword, page: state.page, size: 12 });
+    const res = await fetch("/api/places?" + q);
+    const data = await res.json();
+    state.total = data.total;
+    const cards = data.items.map(p => `
+      <article class="card" data-id="${p.id}">
+        <div class="thumb">${p.img ? `<img src="${p.img}" alt="" loading="lazy">` : `<div class="noimg">🐾</div>`}</div>
+        <div class="body">
+          <span class="badge">${TYPE_NAME[p.type] || "여행지"}</span>
+          <h3>${p.title}</h3>
+          <div class="addr">${p.addr || "주소 정보 없음"}</div>
+        </div>
+      </article>`).join("");
+    if (reset) $("grid").innerHTML = cards; else $("grid").insertAdjacentHTML("beforeend", cards);
+    const shown = $("grid").children.length;
+    $("meta").innerHTML = state.total ? `총 <b>${state.total.toLocaleString()}</b>곳` : "";
+    $("empty").style.display = state.total ? "none" : "";
+    $("more").style.display = shown < state.total ? "" : "none";
+  } catch (e) {
+    $("grid").innerHTML = ""; $("empty").style.display = ""; console.error(e);
+  } finally {
+    state.loading = false; $("more").disabled = false;
+  }
+}
+
+function openDetail(id) { location.href = "/place/" + id; }
+
+/* ---- 지도 뷰 ---- */
+let map = null, markerLayer = null;
+
+function setView(mode) {
+  document.body.classList.toggle("map-mode", mode === "map");
+  $("v-list").classList.toggle("on", mode === "list");
+  $("v-map").classList.toggle("on", mode === "map");
+  if (mode === "map") {
+    if (!map) {
+      map = L.map("map").setView([36.3, 127.8], 7);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap', maxZoom: 19,
+      }).addTo(map);
+      markerLayer = L.layerGroup().addTo(map);
+    }
+    setTimeout(() => map.invalidateSize(), 50);
+    refreshMap();
+  }
+}
+
+async function refreshMap() {
+  if (!map) return;
+  markerLayer.clearLayers();
+  const q = new URLSearchParams({ region: state.region, type: state.type, keyword: state.keyword, page: 1, size: 50 });
+  const data = await (await fetch("/api/places?" + q)).json();
+  const pts = [];
+  data.items.forEach(p => {
+    const lat = parseFloat(p.mapy), lng = parseFloat(p.mapx);
+    if (!lat || !lng) return;
+    pts.push([lat, lng]);
+    const el = document.createElement("div");
+    const t = document.createElement("div"); t.className = "pop-title"; t.textContent = p.title;
+    const a = document.createElement("div"); a.className = "pop-addr"; a.textContent = p.addr;
+    const b = document.createElement("button"); b.className = "pop-btn"; b.textContent = "상세 보기";
+    b.onclick = () => openDetail(p.id);
+    el.append(t, a, b);
+    L.marker([lat, lng]).addTo(markerLayer).bindPopup(el);
+  });
+  if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
+  if (data.total > 50) {
+    $("meta").innerHTML = `총 <b>${data.total.toLocaleString()}</b>곳 · 지도에는 최신 50곳만 표시돼요`;
+  }
+}
+
+$("v-list").addEventListener("click", () => setView("list"));
+$("v-map").addEventListener("click", () => setView("map"));
+
+function onFilterChange() {
+  renderFilters(); load();
+  if (document.body.classList.contains("map-mode")) refreshMap();
+}
+$("regions").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.region = b.dataset.v; onFilterChange();
+});
+$("types").addEventListener("click", e => {
+  const b = e.target.closest(".tab"); if (!b) return;
+  state.type = b.dataset.v; onFilterChange();
+});
+let kwTimer;
+$("kw").addEventListener("input", e => {
+  clearTimeout(kwTimer);
+  kwTimer = setTimeout(() => { state.keyword = e.target.value; onFilterChange(); }, 400);
+});
+$("more").addEventListener("click", () => { state.page++; load(false); });
+$("grid").addEventListener("click", e => {
+  const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id);
+});
+
+renderFilters();
+load();
+</script>
+</body>
+</html>

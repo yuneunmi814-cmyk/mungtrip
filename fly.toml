@@ -1,0 +1,17 @@
+# 멍트립 — Fly.io 배포 설정
+app = "mungtrip"
+primary_region = "nrt"   # 도쿄(한국에서 가장 가까운 리전)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"    # 미사용 시 정지 → 요청 오면 수 초 내 기동(비용 절감)
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

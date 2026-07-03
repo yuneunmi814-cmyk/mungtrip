@@ -1,0 +1,14 @@
+# 비밀키 — 절대 커밋 금지 (fly secrets / .env로만 관리)
+.env
+
+# 파이썬
+__pycache__/
+.venv/
+
+# 데이터 산출물 — ingest.py로 재생성 (README 참고)
+mungtrip.db
+pet_facilities.csv
+pet_facilities_new.csv
+
+# 로그
+refresh.log
