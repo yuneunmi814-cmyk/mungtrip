@@ -95,6 +95,9 @@ async def places(
     if type:
         where.append("type = ?")
         args.append(type)
+    else:
+        # 쇼핑(38)은 브랜드 매장이 대부분(8.6천건)이라 여행 맥락에서 기본 제외
+        where.append("type != '38'")
     if keyword.strip():
         where.append("(title LIKE ? OR addr LIKE ?)")
         kw = f"%{keyword.strip()}%"
