@@ -205,7 +205,10 @@ def _amenities(lat: float, lng: float, exclude_id: str = "") -> dict:
         g for g in _nearby(PLAYGROUND_SQL, lat, lng, 10000)
         if g["id"] != exclude_id
     ][:3]
-    return {"toilets": toilets, "waters": waters, "grounds": grounds}
+    vets = _nearby(
+        "SELECT DISTINCT name, tel, open_time AS open, lat, lng FROM vets "
+        "WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?", lat, lng, 5000)
+    return {"toilets": toilets, "waters": waters, "grounds": grounds, "vets": vets}
 
 
 def _kcisa_extras(row) -> tuple[list[dict], list[dict]]:

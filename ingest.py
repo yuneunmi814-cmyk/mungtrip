@@ -207,6 +207,36 @@ def save_waters(con: sqlite3.Connection) -> int:
     return len(waters)
 
 
+def save_vets(con: sqlite3.Connection, csv_path: str) -> int:
+    """문화정보원 CSV의 반려의료 중 동물병원만 → vets 테이블 (API 호출 없음)."""
+    with open(csv_path, encoding="utf-8-sig") as f:
+        rows = [
+            r for r in csv.DictReader(f)
+            if r.get("카테고리2") == "반려의료" and r.get("카테고리3") == "동물병원"
+            and (r.get("위도") or "").strip() and (r.get("경도") or "").strip()
+        ]
+    vets = []
+    for r in rows:
+        try:
+            lat, lng = float(r["위도"]), float(r["경도"])
+        except ValueError:
+            continue
+        if not (33 < lat < 39 and 124 < lng < 132):
+            continue
+        vets.append({
+            "name": (r.get("시설명") or "동물병원").strip(),
+            "tel": (r.get("전화번호") or "").strip(),
+            "open_time": (r.get("운영시간") or "").strip(),
+            "lat": lat, "lng": lng,
+        })
+    con.execute("DROP TABLE IF EXISTS vets")
+    con.execute("CREATE TABLE vets (name TEXT, tel TEXT, open_time TEXT, lat REAL, lng REAL)")
+    con.executemany("INSERT INTO vets VALUES (:name, :tel, :open_time, :lat, :lng)", vets)
+    con.execute("CREATE INDEX idx_vet_lat ON vets(lat)")
+    con.commit()
+    return len(vets)
+
+
 def load_kcisa(path: str) -> list[dict]:
     with open(path, encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
@@ -230,6 +260,14 @@ def main() -> None:
         con = sqlite3.connect(DB)
         n = save_waters(con)
         print(f"음수대 보유 공원 {n:,}건 저장 완료")
+        con.close()
+        return
+
+    if "--vets-only" in sys.argv:  # 동물병원만 갱신 (개발용)
+        con = sqlite3.connect(DB)
+        csv_path = next((a for a in sys.argv[1:] if not a.startswith("--")), "pet_facilities.csv")
+        n = save_vets(con, csv_path)
+        print(f"동물병원 {n:,}건 저장 완료")
         con.close()
         return
 
@@ -347,6 +385,10 @@ def main() -> None:
     print("5) 음수대 보유 공원 수집…")
     n_water = save_waters(con)
     print(f"   → {n_water:,}건")
+
+    print("6) 동물병원 로드…")
+    n_vet = save_vets(con, csv_path)
+    print(f"   → {n_vet:,}건")
     print(f"   DB: {DB}")
     con.close()
 

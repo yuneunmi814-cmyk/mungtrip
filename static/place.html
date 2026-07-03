@@ -287,7 +287,7 @@ async function init() {
 
   /* 주변 편의시설 */
   const fmtDist = d => d >= 1000 ? (d / 1000).toFixed(1) + "km" : d + "m";
-  const hasAmenity = (p.toilets?.length || p.waters?.length || p.grounds?.length);
+  const hasAmenity = (p.toilets?.length || p.waters?.length || p.grounds?.length || p.vets?.length);
   if (hasAmenity) {
     const sec = el("section");
     sec.append(el("h2", "", "주변 편의시설"));
@@ -296,6 +296,21 @@ async function init() {
       const a = el("a", "", g.name); a.href = "/place/" + g.id;
       a.style.cssText = "color:var(--wds-primary);text-decoration:none;font-weight:500";
       return a;
+    })() }));
+    (p.vets || []).forEach(v => rows.push({ icon: "🏥", dist: v.dist, node: (() => {
+      const wrap = el("span", "");
+      wrap.append(document.createTextNode(v.name + " "));
+      if (v.tel) {
+        const a = el("a", "", "📞 " + v.tel); a.href = "tel:" + v.tel.replace(/[^0-9]/g, "");
+        a.style.cssText = "color:var(--wds-primary);text-decoration:none;font-weight:500;white-space:nowrap";
+        wrap.append(a);
+      }
+      if (v.open && v.open !== "정보없음") {
+        const o = el("div", "", v.open);
+        o.style.cssText = "font-size:13px;line-height:18px;color:var(--wds-label-alternative);margin-top:2px";
+        wrap.append(o);
+      }
+      return wrap;
     })() }));
     (p.toilets || []).forEach(t => rows.push({ icon: "🚻", dist: t.dist, node: document.createTextNode(t.name + (t.open ? ` · ${t.open}` : "")) }));
     (p.waters || []).forEach(w => rows.push({ icon: "🚰", dist: w.dist, node: document.createTextNode(w.name + " (음수대 보유 공원)") }));
@@ -306,7 +321,7 @@ async function init() {
       row.append(k, v);
       sec.append(row);
     });
-    const note = el("div", "", "공공데이터(공중화장실·도시공원 표준데이터) 기준 직선거리예요. 놀이터는 클릭하면 상세로 이동해요.");
+    const note = el("div", "", "공공데이터(문화정보원·공중화장실·도시공원 표준데이터) 기준 직선거리예요. 동물병원은 방문 전 전화로 진료 여부를 확인해 주세요.");
     note.style.cssText = "margin-top:10px;font-size:12px;line-height:16px;color:var(--wds-label-assistive)";
     sec.append(note);
     main.append(sec);
@@ -362,6 +377,7 @@ async function init() {
     amenityMarker(p.toilets, "🚻", "#70737C");
     amenityMarker(p.waters, "🚰", "#0066FF");
     amenityMarker(p.grounds, "🐕", "#00BF40");
+    amenityMarker(p.vets, "🏥", "#FF4242");
   }
 }
 init();
