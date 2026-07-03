@@ -12,3 +12,6 @@ pet_facilities_new.csv
 
 # 로그
 refresh.log
+
+# 마케팅 산출물(영상 등) — 용량 커서 레포 제외
+marketing/
